@@ -44,6 +44,8 @@ move (TapeHead n) R = TapeHead $ n + 1
 newtype Tape = Tape { getTape :: Map TapeHead Char }
 
 instance Show Tape where
+    show (Tape t)
+        | t == Map.empty = show Empty
     show t = foldMap (show . (\i -> symbolAt (TapeHead i) t)) [first - 1 .. lst + 1]
         where
             first = getHead $ fst $ Map.findMin $ getTape t
