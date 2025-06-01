@@ -1,0 +1,21 @@
+cabal-version:      3.0
+name:               turing-machine-visualizer
+version:            0.1.0.0
+license:            MIT
+license-file:       LICENSE
+author:             Javier Manotas Ruiz
+maintainer:         jmanotasruiz@gmail.com
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+executable turing-machine-visualizer
+    import:           warnings
+    main-is:          Main.hs
+    other-modules:    TuringMachine, Tape, TMState, Parser
+    -- other-extensions:
+    build-depends:    containers ^>=0.6.7, base ^>=4.18.3.0, parsec ^>=3.1.16.1
+    hs-source-dirs:   src
+    default-language: Haskell2010
