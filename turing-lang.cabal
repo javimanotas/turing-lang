@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               turing-machine-visualizer
+name:               turing-lang
 version:            0.1.0.0
 license:            MIT
 license-file:       LICENSE
@@ -11,7 +11,7 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
-executable turing-machine-visualizer
+executable turing-lang
     import:           warnings
     main-is:          Main.hs
     other-modules:    TuringMachine, Tape, TMState, Parser
