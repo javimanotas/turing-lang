@@ -2,22 +2,28 @@ module TuringMachine ( simulate
                      , TMGraph
                      ) where
 
-import           Data.Map (Map)
-import qualified Data.Map as Map
 import           Tape
 import           TMState
 import           Data.List
 
 
 
-type TMGraph = Map (NodeState, Symbol) (NodeState, Symbol, Move)
+type TMGraph = [((NodeState, Symbol), (NodeState, Symbol, Move))]
+
+firstMatch :: NodeState -> Symbol -> TMGraph -> Maybe (NodeState, Symbol, Move)
+firstMatch _ _ [] = Nothing
+firstMatch state _ (((state', WildCard), assoc) : _)
+    | state == state' = Just assoc
+firstMatch state symb (((state', symb'), assoc) : _)
+    | state == state' && symb == symb' = Just assoc
+firstMatch state symb (_ : xs) = firstMatch state symb xs
 
 step :: TMGraph -> Tape -> TapeState -> Maybe (Tape, TapeState)
 step graph tape tapeState = next <$> transition
     where
         currHead = headPos tapeState
         currSymbol = symbolAt (headPos tapeState) tape
-        transition = Map.lookup (currState tapeState, currSymbol) graph
+        transition = firstMatch (currState tapeState) currSymbol graph
         next (nodeState, symb, m) = (tape', state')
             where
                 tape' = placeSymbol currHead symb tape

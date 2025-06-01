@@ -38,8 +38,8 @@ tm = do
     c <- upper
     rest <- many letter
     let name = c:rest
-    transitions <- between (char '(') (char ')') $ transition `sepBy` char '|'
-    return (name, Map.fromList transitions)
+    transitions <- between (char '(') (char ')') $ many transition
+    return (name, transitions)
 
 nodeState :: StrParser NodeState
 nodeState = char 'q' >> Q . read <$> many1 digit
@@ -48,15 +48,16 @@ ignoreThen :: Monad m => m a -> b -> m b
 ignoreThen parser x = parser >> return x
 
 symbol :: StrParser Symbol
-symbol = empt <|> sChar
+symbol = empt <|> sChar <|> wildCard
     where
-        empt = ignoreThen (char 'B') Empty
+        empt = char 'B' `ignoreThen` Empty
+        wildCard = char '_' `ignoreThen` WildCard
         sChar = Symbol <$> (upper <|> digit)
 
 move :: StrParser Move
-move = choice [ ignoreThen (char 'L') L
-              , ignoreThen (char 'S') S
-              , ignoreThen (char 'R') R ]
+move = choice [ char 'L' `ignoreThen` L
+              , char 'S' `ignoreThen` S
+              , char 'R' `ignoreThen` R ]
 
 transition :: StrParser ((NodeState, Symbol), (NodeState, Symbol, Move))
 transition = do

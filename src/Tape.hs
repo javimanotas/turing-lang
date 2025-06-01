@@ -63,3 +63,4 @@ symbolAt idx (Tape t) = maybe Empty Symbol (Map.lookup idx t)
 placeSymbol :: TapeHead -> Symbol -> Tape -> Tape
 placeSymbol tapeHead Empty      (Tape tape) = Tape $ Map.delete tapeHead tape
 placeSymbol tapeHead (Symbol s) (Tape tape) = Tape $ Map.insert tapeHead s tape
+placeSymbol _        WildCard   tape        = tape
