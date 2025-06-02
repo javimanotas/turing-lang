@@ -1,8 +1,8 @@
 -- This Turing Machine adds 1 to a given binary number
 -- Input: a binary number between 2 blanks e.g. B100101B
--- Output: the binary number plus one (destroys the input)
+-- Output: the binary number plus one
 
-Main (
+Main = (
     (q0, B) -> (q1, _, R)
     
     (q1, B) -> (q2, _, L)

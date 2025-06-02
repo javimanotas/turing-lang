@@ -1,6 +1,8 @@
-module Main where
+module Main ( main
+            ) where
 
 import           System.Environment
+import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Parser
 import           Tape
@@ -17,11 +19,12 @@ main = do
 
 runTM :: String -> String -> IO ()
 runTM path strTape = do
-    tm <- tmFromFile path
-    case tm of
+    tms <- parseFile path
+    case tms of
         Left err -> putStrLn err
-        Right tms -> case Map.lookup "Main" tms of
-            Nothing -> putStrLn "Error: Main not found"
-            Just tm' -> let tape = tapeFromStr strTape
-                            (result, _) = simulate tm' tape initTapeState 
-                        in print result
+        Right tms' -> execTMs tms' strTape
+
+execTMs :: Map String TM -> String -> IO ()
+execTMs tms strTape = putStrLn $ showTape tape tapeHead
+    where
+        (tape, tapeHead) = performCall tms Map.empty (tapeFromStr strTape) initTapeHead ("Main", [])

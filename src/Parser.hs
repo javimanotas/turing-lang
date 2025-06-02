@@ -1,4 +1,4 @@
-module Parser ( tmFromFile
+module Parser ( parseFile
               ) where
 
 import           TuringMachine
@@ -11,15 +11,14 @@ import           Tape hiding (move)
 
 
 
-tmFromFile :: FilePath -> IO (Either String (Map String TMGraph))
-tmFromFile path = do
+parseFile :: FilePath -> IO (Either String (Map String TM))
+parseFile path = do
     fLines <- lines <$> readFile path
     let withoutComments = map removeComments fLines
     let stream = filter (/= ' ') $ unwords withoutComments
     return $ case parse (tms <* eof) "" stream of
         Left err -> Left $ show err
         Right tmsMap -> Right tmsMap
-
 
 removeComments :: String -> String
 removeComments ""     = ""
@@ -30,46 +29,97 @@ removeComments (x:xs) = x : removeComments xs
 
 type StrParser a = Parsec String () a
 
-tms :: StrParser (Map String TMGraph)
-tms = Map.fromList <$> many1 tm
 
-tm :: StrParser (String, TMGraph)
+
+tms :: StrParser (Map String TM)
+tms = Map.fromList <$> many tm
+
+tm :: StrParser (String, TM)
 tm = do
-    c <- upper
-    rest <- many letter
-    let name = c:rest
-    transitions <- between (char '(') (char ')') $ many transition
-    return (name, transitions)
+    name <- ident
+    prms <- many (char '_' >> var)
+    void $ char '='
+    bdy <- between (char '(') (char ')') tmBody
+    return (name, TM prms bdy)
 
-nodeState :: StrParser NodeState
-nodeState = char 'q' >> Q . read <$> many1 digit
+tmBody :: StrParser TMBody
+tmBody = try tmSeq <|> try seqCalls <|> try seqBranches <|> trans
+    where
+        trans = Graph <$> many transition
+
+
 
 ignoreThen :: Monad m => m a -> b -> m b
 ignoreThen parser x = parser >> return x
 
-symbol :: StrParser Symbol
-symbol = empt <|> sChar <|> wildCard
+ident :: StrParser String
+ident = do
+    c <- upper
+    rest <- many letter
+    return $ c : rest
+
+var :: StrParser String
+var = many1 lower
+
+nodeState :: StrParser NodeState
+nodeState = char 'q' >> Q . read <$> many1 digit
+
+patt :: StrParser Pattern
+patt = empt <|> sChar <|> wildCard <|> Var <$> var
     where
-        empt = char 'B' `ignoreThen` Empty
+        empt = char 'B' `ignoreThen` Symb Empty
+        sChar = Symb . Symbol <$> (upper <|> digit)
         wildCard = char '_' `ignoreThen` WildCard
-        sChar = Symbol <$> (upper <|> digit)
 
 move :: StrParser Move
 move = choice [ char 'L' `ignoreThen` L
               , char 'S' `ignoreThen` S
               , char 'R' `ignoreThen` R ]
 
-transition :: StrParser ((NodeState, Symbol), (NodeState, Symbol, Move))
+
+
+tmSeq :: StrParser TMBody
+tmSeq = do
+    clls <- tmCall `sepBy1` char ','
+    brnchs <- char '|'  >> branch `sepBy` char '|'
+    return (Seq clls brnchs)
+
+seqCalls :: StrParser TMBody
+seqCalls = do
+    clls <- tmCall `sepBy1` char ','
+    return (Seq clls [])
+
+seqBranches :: StrParser TMBody
+seqBranches = do
+    brnchs <- char '|' >> branch `sepBy1` char '|'
+    return (Seq [] brnchs)
+
+branch :: StrParser (Pattern, TMCall)
+branch = do
+    p <- patt
+    void $ string "->"
+    cll <- tmCall
+    return (p, cll)
+
+tmCall :: StrParser TMCall
+tmCall = do
+    name <- ident
+    patterns <- many (char '_' >> patt)
+    return (name, patterns)
+
+
+
+transition :: StrParser TMGraphEdge
 transition = do
     void $ char '('
     st0 <- nodeState
     void $ char ','
-    symb0 <- symbol
+    p0 <- patt
     void $ string ")->("
     st1 <- nodeState
     void $ char ','
-    symb1 <- symbol
+    p1 <- patt
     void $ char ','
     m <- move
     void $ char ')'
-    return ((st0, symb0), (st1, symb1, m))
+    return ((st0, p0), (st1, p1, m))
