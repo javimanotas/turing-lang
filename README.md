@@ -38,5 +38,5 @@ Feel free to do whatever you want with it according to the terms of the license.
 
 ## Contributing
 
-Contributions are welcome! Be sure to do so following the [Contributing](CONTRIBUTING) guidelines.
+Contributions are welcome! Be sure to do so following the [Contributing](CONTRIBUTING.md) guidelines.
 Please make sure to read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) when contributing to this project.
