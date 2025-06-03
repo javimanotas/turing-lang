@@ -1,9 +1,8 @@
 module Parser ( parseFile
+              , ParsedOutput
               ) where
 
 import           TuringMachine
-import           Data.Map (Map)
-import qualified Data.Map as Map
 import           Text.Parsec hiding (Empty)
 import           Control.Monad
 import           TMState
@@ -11,13 +10,15 @@ import           Tape hiding (move)
 
 
 
-parseFile :: FilePath -> IO (Either String (Map String TM))
+type ParsedOutput = [(String, TM)]
+
+parseFile :: FilePath -> IO (Either String ParsedOutput)
 parseFile path = do
     fLines <- lines <$> readFile path
     let withoutComments = map removeComments fLines
     let stream = filter (/= ' ') $ unwords withoutComments
     return $ case parse (tms <* eof) "" stream of
-        Left err -> Left $ show err
+        Left err -> Left $ printErrorDetails withoutComments err
         Right tmsMap -> Right tmsMap
 
 removeComments :: String -> String
@@ -27,12 +28,29 @@ removeComments (x:xs) = x : removeComments xs
 
 
 
+printErrorDetails :: [String] -> ParseError -> String
+printErrorDetails lns err = "Parse error on line " ++ show line ++ ", column " ++ show col ++ "\n" ++ unlines (tail errLines)
+    where
+        errLines = lines $ show err
+        realCol = sourceColumn $ errorPos err
+        (line, col) = getPos lns realCol
+
+getPos :: [String] -> Int -> (Int, Int)
+getPos = aux 1 1
+    where
+        aux l _ ([]:xs) n  = aux (l + 1) 1 xs n
+        aux l c _ 1 = (l, c)
+        aux l c ((' ':xs):xss) n = aux l (c + 1) (xs:xss) n
+        aux l c ((_:xs):xss) n = aux l (c + 1) (xs:xss) (n - 1)
+        aux _ _ _ _ = error "unreachable"
+
+
 type StrParser a = Parsec String () a
 
 
 
-tms :: StrParser (Map String TM)
-tms = Map.fromList <$> many tm
+tms :: StrParser ParsedOutput
+tms = many tm
 
 tm :: StrParser (String, TM)
 tm = do
